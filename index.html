@@ -1,98 +1,332 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級評分系統</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4CAF50">
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
-        .card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .btn { padding: 10px 15px; margin-left: 5px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
-        .btn-add { background-color: #4CAF50; }
-        .btn-sub { background-color: #f44336; }
-        #status { color: #888; margin-bottom: 15px; }
-    </style>
+  <base target="_top">
+  <title>TKP課堂紀錄系統</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="課堂紀錄">
+  <link rel="apple-touch-icon" href="tkpclass.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#4a90e2">
+
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* CSS 樣式表完全保留 */
+    :root { --primary: #4a90e2; --bg: #f4f7f6; --card-bg: #fff; --green: #2ecc71; --red: #e74c3c; --text: #333; --gray: #95a5a6; }
+    body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--text); -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; padding-bottom: 40px; }
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(244, 247, 246, 0.98); position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    select { padding: 10px; font-size: 16px; border-radius: 10px; border: 1px solid #ddd; background: white; width: 50%; outline: none; }
+    .stats-btn { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; box-shadow: 0 2px 5px rgba(74, 144, 226, 0.3); }
+    .container { padding: 0 15px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-top: 10px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 12px 5px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.03); cursor: pointer; position: relative; border-bottom: 3px solid #eee; transition: transform 0.1s; }
+    .card:active { transform: scale(0.97); background: #fafafa; }
+    .card.positive { border-bottom-color: var(--green); }
+    .card.negative { border-bottom-color: var(--red); }
+    .stu-id { font-size: 11px; color: #999; }
+    .stu-name { font-size: 16px; font-weight: bold; margin: 4px 0; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stu-score { font-size: 18px; font-weight: 800; color: var(--primary); background: #eff6ff; display: inline-block; padding: 2px 10px; border-radius: 12px; min-width: 30px; }
+    .stu-score.neg { color: var(--red); background: #fef2f2; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 100; justify-content: center; align-items: flex-end; }
+    .modal.active { display: flex; }
+    .sheet { background: white; width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 20px; max-height: 85vh; display: flex; flex-direction: column; animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes slideUp { from {transform: translateY(100%);} to {transform: translateY(0);} }
+    .sheet-header { text-align: center; margin-bottom: 15px; flex-shrink: 0; }
+    .sheet-title { font-size: 1.3em; font-weight: bold; color: #333; }
+    .sheet-subtitle { color: #888; font-size: 0.9em; margin-top: 5px; }
+    .modal-tabs { display: flex; margin-bottom: 15px; background: #f0f2f5; border-radius: 10px; padding: 4px; flex-shrink: 0; }
+    .tab-item { flex: 1; text-align: center; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; color: #7f8c8d; font-size: 14px; transition: 0.2s; }
+    .tab-item.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+    .tab-content { flex: 1; overflow-y: auto; display: none; padding-bottom: 10px;}
+    .tab-content.active { display: block; }
+    .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .action-btn { padding: 12px 5px; border: none; border-radius: 12px; font-size: 13px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; background: #f8f9fa; font-weight: 500; color: #555; }
+    .action-btn:active { transform: scale(0.95); background: #eee; }
+    .action-btn.add { background: #eefbf4; color: #219653; border: 1px solid #d4f7e3; }
+    .action-btn.minus { background: #fef2f2; color: #eb5757; border: 1px solid #fdebeb; }
+    .action-icon { font-size: 24px; }
+    .history-list { list-style: none; padding: 0; margin: 0; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+    .h-left { display: flex; flex-direction: column; width: 85px; }
+    .h-time { font-size: 11px; color: #aaa; }
+    .h-info { flex: 1; text-align: left; font-size: 14px; color: #333; padding-left: 10px;}
+    .h-right { display: flex; align-items: center; gap: 15px; }
+    .h-score { font-weight: bold; width: 25px; text-align: right; }
+    .h-score.plus { color: var(--green); }
+    .h-score.minus { color: var(--red); }
+    .del-btn { background: none; border: none; font-size: 16px; cursor: pointer; opacity: 0.4; padding: 5px; }
+    .del-btn:hover { opacity: 1; transform: scale(1.1); }
+    .close-btn { width: 100%; padding: 14px; margin-top: 10px; border: none; background: #f0f2f5; color: #555; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+    #stats-view { display: none; padding: 0 15px; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: var(--primary); color: white; font-weight: normal; }
+    #loading { position: fixed; top:0; left:0; width:100%; height:100%; background: #f4f7f6; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: #555; }
+    .spinner { font-size: 40px; animation: spin 1s infinite linear; margin-bottom: 15px;}
+    @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} }
+  </style>
 </head>
 <body>
 
-    <h2>📝 班級評分系統</h2>
-    <div id="status">資料載入中...</div>
-    <div id="student-list"></div>
+<div id="loading">
+  <div class="spinner">⏳</div>
+  <p id="loading-text">正在載入資料...</p>
+</div>
 
-    <script>
-        // ⚠️ 請填入您的 Google Apps Script 網址
-        const GAS_URL = "YOUR_GAS_URL_HERE"; 
+<div id="main-view">
+  <div class="header">
+    <select id="classSelect" onchange="renderStudents()"><option>...</option></select>
+    <button class="stats-btn" onclick="toggleStats(true)">🏆 排行榜</button>
+  </div>
+  <div class="container"><div class="grid" id="studentGrid"></div></div>
+</div>
 
-        // 註冊 Service Worker (PWA 的核心)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-            .then(() => console.log("Service Worker 註冊成功"))
-            .catch(err => console.log("Service Worker 註冊失敗", err));
-        }
+<div id="stats-view">
+  <div class="header">
+    <h2 style="margin:0; font-size:18px;">🏆 積分榜</h2>
+    <button class="stats-btn" onclick="toggleStats(false)" style="background: var(--gray);">↩ 返回</button>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>姓名</th><th style="text-align:right">總分</th></tr></thead>
+    <tbody id="statsBody"></tbody>
+  </table>
+</div>
 
-        // 取得學生名單
-        async function loadData() {
-            document.getElementById("status").innerText = "資料載入中...";
-            try {
-                const response = await fetch(GAS_URL);
-                const data = await response.json();
-                renderList(data);
-                document.getElementById("status").innerText = "資料已更新";
-            } catch (error) {
-                document.getElementById("status").innerText = "連線失敗，請檢查網路";
-            }
-        }
+<div class="modal" id="actionModal" onclick="if(event.target === this) closeModal()">
+  <div class="sheet">
+    <div class="sheet-header">
+      <div class="sheet-title" id="modalStuName"></div>
+      <div class="sheet-subtitle" id="modalStuId"></div>
+    </div>
+    
+    <div class="modal-tabs">
+      <div class="tab-item active" onclick="switchModalTab('grade')">✨ 評分</div>
+      <div class="tab-item" onclick="switchModalTab('history')">📜 紀錄</div>
+    </div>
+    
+    <div id="tab-grade" class="tab-content active">
+      <div class="action-grid" id="actionButtons"></div>
+    </div>
+    
+    <div id="tab-history" class="tab-content">
+      <ul class="history-list" id="historyList"></ul>
+    </div>
+    
+    <button class="close-btn" onclick="closeModal()">關閉</button>
+  </div>
+</div>
 
-        // 渲染畫面
-        function renderList(students) {
-            const listDiv = document.getElementById("student-list");
-            listDiv.innerHTML = ""; 
-            students.forEach(student => {
-                const card = document.createElement("div");
-                card.className = "card";
-                card.innerHTML = `
-                    <div>
-                        <strong>${student.n}</strong> (學號: ${student.id}) <br>
-                        <span style="color:#ff9800; font-size:1.2em;">分數: <span id="score-${student.id}">${student.s}</span></span>
-                    </div>
-                    <div>
-                        <button class="btn btn-add" onclick="updateScore('${student.id}', 1)">+1</button>
-                        <button class="btn btn-sub" onclick="updateScore('${student.id}', -1)">-1</button>
-                    </div>
-                `;
-                listDiv.appendChild(card);
-            });
-        }
+<script>
+  // ==========================================
+  // ⚠️ 請填寫您的 Google Apps Script 部署網址
+  // ==========================================
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbycf8wtkcytdpNkQ83SrETv2PVWEeOCp8pRTJWmQURQ2xP2HOZGfMH7lU9XvcA8X-ZKVA/exec"; 
 
-        // 加分/扣分動作
-        function updateScore(id, change) {
-            const scoreElement = document.getElementById(`score-${id}`);
-            let currentScore = parseInt(scoreElement.innerText);
-            let newScore = currentScore + change;
-            
-            // 畫面先即時更新 (提升使用者體驗)
-            scoreElement.innerText = newScore;
-            document.getElementById("status").innerText = "儲存中...";
+  let rawData = {}; 
+  let selectedStudent = null;
 
-            // 寄送資料到後台
-            fetch(GAS_URL, {
-                method: "POST",
-                body: JSON.stringify({ id: id, score: newScore }),
-                // 使用 no-cors 避免跨域阻擋問題，雖然收不到完整 response，但能成功送出
-                mode: "no-cors", 
-                headers: { "Content-Type": "application/json" }
-            }).then(() => {
-                document.getElementById("status").innerText = "儲存成功";
-            }).catch(() => {
-                document.getElementById("status").innerText = "儲存失敗，請重試";
-                scoreElement.innerText = currentScore; // 失敗則退回原分數
-            });
-        }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log("Service Worker 註冊成功"))
+      .catch(err => console.log("Service Worker 註冊失敗", err));
+  }
 
-        // 網頁載入時立刻執行
-        window.onload = loadData;
-    </script>
+  window.onload = async function() { 
+    try {
+      const response = await fetch(`${GAS_URL}?action=getInitData`);
+      const data = await response.json();
+      initApp(data);
+    } catch (error) {
+      document.getElementById('loading-text').innerText = "連線失敗，請檢查網路或網址設定。";
+      console.error("載入失敗:", error);
+    }
+  };
+
+  function initApp(data) {
+    rawData = data;
+    const select = document.getElementById('classSelect');
+    select.innerHTML = '';
+    
+    if (data.classes.length === 0) select.add(new Option("無資料", ""));
+    else data.classes.forEach(c => select.add(new Option(c, c)));
+    
+    const actionContainer = document.getElementById('actionButtons');
+    actionContainer.innerHTML = '';
+    data.actions.forEach(act => {
+      let btn = document.createElement('button');
+      let typeClass = act.score >= 0 ? 'add' : 'minus';
+      btn.className = `action-btn ${typeClass}`;
+      let icon = act.icon || (act.score >=0 ? '👍' : '⚠️');
+      btn.innerHTML = `<span class="action-icon">${icon}</span><span>${act.name}</span><span style="font-size:11px; opacity:0.8">${act.score>0?'+':''}${act.score}</span>`;
+      btn.onclick = () => submitScore(act);
+      actionContainer.appendChild(btn);
+    });
+
+    if(data.classes.length > 0) { select.value = data.classes[0]; renderStudents(); }
+    document.getElementById('loading').style.display = 'none';
+  }
+
+  function renderStudents() {
+    const cls = document.getElementById('classSelect').value;
+    const grid = document.getElementById('studentGrid');
+    grid.innerHTML = '';
+    const students = rawData.students.filter(s => s.class === cls);
+    if (students.length === 0) { grid.innerHTML = '<div style="color:#999;grid-column:1/-1;text-align:center;margin-top:20px">此班級無學生</div>'; return; }
+
+    students.forEach(s => {
+      let card = document.createElement('div');
+      let scoreClass = s.totalScore < 0 ? 'negative' : 'positive';
+      card.className = `card ${scoreClass}`;
+      // ⚠️ 修正：ID 改為 score-班級-學號，避免跨班級撞名
+      card.innerHTML = `<div class="stu-id">${s.id}</div><div class="stu-name">${s.name}</div><div class="stu-score ${s.totalScore<0?'neg':''}" id="score-${s.class}-${s.id}">${s.totalScore}</div>`;
+      card.onclick = () => openModal(s);
+      grid.appendChild(card);
+    });
+  }
+
+  function openModal(student) {
+    selectedStudent = student;
+    document.getElementById('modalStuName').innerText = student.name;
+    updateModalHeader();
+    switchModalTab('grade');
+    renderHistory(student);
+    document.getElementById('actionModal').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('actionModal').classList.remove('active');
+    setTimeout(() => { selectedStudent = null; }, 200);
+  }
+  
+  function updateModalHeader() {
+    if(!selectedStudent) return;
+    document.getElementById('modalStuId').innerText = `班級: ${selectedStudent.class} | 學號: ${selectedStudent.id} | 分數: ${selectedStudent.totalScore}`;
+  }
+
+  function switchModalTab(tabName) {
+    document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    if(tabName === 'grade') document.querySelector('.tab-item:nth-child(1)').classList.add('active');
+    else document.querySelector('.tab-item:nth-child(2)').classList.add('active');
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+  }
+
+  function submitScore(action) {
+    if (!selectedStudent) return;
+    
+    if (!confirm(`確定給予「${selectedStudent.name}」\n項目：${action.name} (${action.score > 0 ? '+' : ''}${action.score}) 嗎？`)) {
+      return;
+    }
+    
+    let points = Number(action.score);
+    selectedStudent.totalScore += points;
+    
+    let now = new Date();
+    let timeDisplay = (now.getMonth()+1) + "/" + now.getDate() + " " + now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+    let y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0'), d = String(now.getDate()).padStart(2,'0');
+    let h = String(now.getHours()).padStart(2,'0'), min = String(now.getMinutes()).padStart(2,'0'), sec = String(now.getSeconds()).padStart(2,'0');
+    let timeId = `${y}-${m}-${d} ${h}:${min}:${sec}`;
+
+    if(!selectedStudent.history) selectedStudent.history = [];
+    selectedStudent.history.push({ tid: timeId, t: timeDisplay, i: action.name, s: points });
+
+    updateUI(selectedStudent);
+    switchModalTab('history');
+
+    const record = {
+      class: selectedStudent.class,
+      studentId: String(selectedStudent.id),
+      studentName: selectedStudent.name,
+      actionName: action.name,
+      score: action.score
+    };
+
+    fetch(GAS_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "submitScore", data: record })
+    }).catch(e => console.error("評分上傳失敗:", e));
+  }
+
+  function deleteHistory(index) {
+    if(!selectedStudent) return;
+    let item = selectedStudent.history[index];
+    
+    if(!confirm(`⚠️ 確定要刪除這筆紀錄嗎？\n\n項目：${item.i}\n分數：${item.s}`)) return;
+
+    selectedStudent.totalScore -= Number(item.s);
+    selectedStudent.history.splice(index, 1);
+    updateUI(selectedStudent);
+
+    const deleteData = {
+      class: selectedStudent.class, // ⚠️ 修正：加入班級確保刪除正確
+      studentId: String(selectedStudent.id),
+      timeId: item.tid,
+      score: item.s
+    };
+
+    fetch(GAS_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "deleteScore", data: deleteData })
+    }).catch(e => console.error("刪除請求失敗:", e));
+  }
+
+  function renderHistory(student) {
+    const list = document.getElementById('historyList');
+    list.innerHTML = '';
+    const history = student.history ? [...student.history] : []; 
+
+    if (history.length === 0) { list.innerHTML = '<li style="text-align:center;color:#ccc;margin-top:20px">尚無紀錄</li>'; return; }
+
+    for (let i = history.length - 1; i >= 0; i--) {
+      let h = history[i];
+      let li = document.createElement('li');
+      li.className = 'history-item';
+      let scoreTxt = h.s > 0 ? `+${h.s}` : h.s;
+      let scoreCls = h.s >= 0 ? 'plus' : 'minus';
+      
+      li.innerHTML = `
+        <div class="h-left"><span class="h-time">${h.t}</span></div>
+        <div class="h-info">${h.i}</div>
+        <div class="h-right">
+          <span class="h-score ${scoreCls}">${scoreTxt}</span>
+          <button class="del-btn" onclick="deleteHistory(${i})">🗑️</button>
+        </div>
+      `;
+      list.appendChild(li);
+    }
+  }
+
+  function updateUI(stu) {
+    // ⚠️ 修正：使用班級+學號來尋找 DOM 元素
+    const scoreEl = document.getElementById(`score-${stu.class}-${stu.id}`);
+    if(scoreEl) {
+      scoreEl.innerText = stu.totalScore;
+      if(stu.totalScore < 0) scoreEl.classList.add('neg'); else scoreEl.classList.remove('neg');
+    }
+    updateModalHeader();
+    renderHistory(stu);
+  }
+
+  function toggleStats(show) {
+    document.getElementById('main-view').style.display = show ? 'none' : 'block';
+    document.getElementById('stats-view').style.display = show ? 'block' : 'none';
+    window.scrollTo(0, 0);
+    if(show) {
+      const cls = document.getElementById('classSelect').value;
+      const tbody = document.getElementById('statsBody');
+      tbody.innerHTML = '';
+      let list = rawData.students.filter(s => s.class === cls).sort((a,b) => b.totalScore - a.totalScore);
+      list.forEach((s, i) => {
+        let rank = i+1; if(rank===1) rank='🥇'; else if(rank===2) rank='🥈'; else if(rank===3) rank='🥉';
+        tbody.innerHTML += `<tr><td>${rank}</td><td>${s.name}</td><td style="text-align:right;font-weight:bold;color:var(--primary)">${s.totalScore}</td></tr>`;
+      });
+    }
+  }
+</script>
 </body>
 </html>
