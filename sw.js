@@ -1,12 +1,11 @@
-const CACHE_NAME = 'scoring-app-v1';
+const CACHE_NAME = 'class-score-app-v1';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json'
-  // 若有圖示也可以加進來，例如 './icon-192.png'
 ];
 
-// 安裝 Service Worker 並快取資源
+// 安裝 Service Worker 並快取基本檔案
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -16,13 +15,14 @@ self.addEventListener('install', event => {
   );
 });
 
-// 攔截網路請求：如果有快取就用快取，沒有就抓網路的
+// 攔截網路請求：GAS 網址不快取，其他檔案優先使用快取
 self.addEventListener('fetch', event => {
-  // 為了確保即時抓取 GAS 最新資料，API 請求不放進快取
+  // 如果是呼叫 Google Apps Script API，一律走網路連線
   if (event.request.url.includes('script.google.com')) {
-    return; 
+    return;
   }
 
+  // 靜態檔案優先讀取快取
   event.respondWith(
     caches.match(event.request)
       .then(response => {
