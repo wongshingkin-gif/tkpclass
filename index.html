@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班級評分系統</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .btn { padding: 10px 15px; margin-left: 5px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
+        .btn-add { background-color: #4CAF50; }
+        .btn-sub { background-color: #f44336; }
+        #status { color: #888; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+    <h2>📝 班級評分系統</h2>
+    <div id="status">資料載入中...</div>
+    <div id="student-list"></div>
+
+    <script>
+        // ⚠️ 請填入您的 Google Apps Script 網址
+        const GAS_URL = "YOUR_GAS_URL_HERE"; 
+
+        // 註冊 Service Worker (PWA 的核心)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(() => console.log("Service Worker 註冊成功"))
+            .catch(err => console.log("Service Worker 註冊失敗", err));
+        }
+
+        // 取得學生名單
+        async function loadData() {
+            document.getElementById("status").innerText = "資料載入中...";
+            try {
+                const response = await fetch(GAS_URL);
+                const data = await response.json();
+                renderList(data);
+                document.getElementById("status").innerText = "資料已更新";
+            } catch (error) {
+                document.getElementById("status").innerText = "連線失敗，請檢查網路";
+            }
+        }
+
+        // 渲染畫面
+        function renderList(students) {
+            const listDiv = document.getElementById("student-list");
+            listDiv.innerHTML = ""; 
+            students.forEach(student => {
+                const card = document.createElement("div");
+                card.className = "card";
+                card.innerHTML = `
+                    <div>
+                        <strong>${student.n}</strong> (學號: ${student.id}) <br>
+                        <span style="color:#ff9800; font-size:1.2em;">分數: <span id="score-${student.id}">${student.s}</span></span>
+                    </div>
+                    <div>
+                        <button class="btn btn-add" onclick="updateScore('${student.id}', 1)">+1</button>
+                        <button class="btn btn-sub" onclick="updateScore('${student.id}', -1)">-1</button>
+                    </div>
+                `;
+                listDiv.appendChild(card);
+            });
+        }
+
+        // 加分/扣分動作
+        function updateScore(id, change) {
+            const scoreElement = document.getElementById(`score-${id}`);
+            let currentScore = parseInt(scoreElement.innerText);
+            let newScore = currentScore + change;
+            
+            // 畫面先即時更新 (提升使用者體驗)
+            scoreElement.innerText = newScore;
+            document.getElementById("status").innerText = "儲存中...";
+
+            // 寄送資料到後台
+            fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ id: id, score: newScore }),
+                // 使用 no-cors 避免跨域阻擋問題，雖然收不到完整 response，但能成功送出
+                mode: "no-cors", 
+                headers: { "Content-Type": "application/json" }
+            }).then(() => {
+                document.getElementById("status").innerText = "儲存成功";
+            }).catch(() => {
+                document.getElementById("status").innerText = "儲存失敗，請重試";
+                scoreElement.innerText = currentScore; // 失敗則退回原分數
+            });
+        }
+
+        // 網頁載入時立刻執行
+        window.onload = loadData;
+    </script>
+</body>
+</html>
