@@ -1,19 +1,20 @@
 {
-  "name": "班級評分系統",
-  "short_name": "評分系統",
-  "description": "用來紀錄學生加扣分的系統",
+  "name": "TKP學生表現評分系統",
+  "short_name": "TKP課堂評分",
+  "description": "課堂加扣分與歷史紀錄工具",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4CAF50",
+  "background_color": "#f4f7f6",
+  "theme_color": "#4a90e2",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "tkpclass.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icon-512.png",
+      "src": "tkpclass.png",
       "sizes": "512x512",
       "type": "image/png"
     }
